@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="current-dir-path" content="{{ current_path | safe }}">
+    <title>Index of /{{ current_path | safe }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            /* Light background */
+            color: #333;
+            /* Default text color */
+        }
+
+        h1 {
+            color: #B2ADA7;
+            /* Headline color */
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: #76A2AF;
+            /* General link color */
+            font-weight: normal;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Directory specific styles */
+        .dir a {
+            color: #E76950;
+            /* Directory link color */
+            font-weight: bold;
+        }
+
+        /* --- NEW: Apply directory style to Parent Directory link --- */
+        .parent-dir a {
+            color: #E76950;
+            /* Directory link color */
+            font-weight: bold;
+        }
+
+
+        .dir::before {
+            content: "📁 ";
+            font-size: 1.1em;
+            /* Slightly larger folder icon */
+        }
+
+        .file::before {
+            content: "📄 ";
+            font-size: 1.1em;
+        }
+
+        /* Upload Section Styles */
+        .upload-section {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px dashed #ccc;
+            background-color: #fff;
+        }
+
+        .upload-section button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #e7e7e7;
+            border-radius: 4px;
+        }
+
+        .upload-section button:hover {
+            background-color: #d4d4d4;
+        }
+
+        #file-list span {
+            display: block;
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        #file-list span.error {
+            color: #dc3545;
+            /* Bootstrap danger red for errors */
+            font-weight: bold;
+        }
+
+        #file-list span.success {
+            text-decoration: line-through;
+            /* Optional: strike through successful uploads */
+            color: #6c757d;
+            /* Grey out */
+        }
+
+        #upload-status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #888;
+            padding: 5px;
+            /* Add some padding */
+        }
+
+        /* --- NEW: Success message style --- */
+        #upload-status.success {
+            color: #4CAF50;
+            /* Subtle green */
+            font-weight: bold;
+            font-style: normal;
+            background-color: #e8f5e9;
+            /* Very light green background */
+            border-left: 3px solid #4CAF50;
+        }
+
+        #upload-status.error {
+            color: #dc3545;
+            /* Bootstrap danger red */
+            font-weight: bold;
+            font-style: normal;
+            background-color: #f8d7da;
+            /* Light red background */
+            border-left: 3px solid #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Index of /{{ current_path | safe }}</h1>
+    <ul>
+        {% if parent_path %}
+        <li class="parent-dir"><a href="{{ parent_path }}">⬆️ Parent Directory</a></li>
+        {% endif %}
+        {% for entry in entries %}
+        {% if entry.is_dir %}
+        <li class="dir"><a href="{{ entry.url }}">{{ entry.name }}/</a></li>
+        {% else %}
+        <li class="file"><a href="{{ entry.url }}">{{ entry.name }}</a></li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+
+    <div class="upload-section">
+        <input type="file" id="file-input" multiple style="display: none;">
+        <button onclick="document.getElementById('file-input').click();">Select Files</button>
+        <button id="upload-button" disabled>Upload Selected</button>
+        <div id="file-list" style="margin-top: 10px;"></div>
+        <div id="upload-status"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const uploadButton = document.getElementById('upload-button');
+        const fileListDiv = document.getElementById('file-list');
+        const uploadStatusDiv = document.getElementById('upload-status');
+        const currentDirPath = document.querySelector('meta[name="current-dir-path"]').getAttribute('content');
+
+        let filesToUpload = [];
+
+        fileInput.addEventListener('change', (event) => {
+            filesToUpload = Array.from(event.target.files);
+            fileListDiv.innerHTML = ''; // Clear previous list
+            uploadStatusDiv.textContent = ''; // Clear status
+            uploadStatusDiv.className = ''; // Reset status class
+
+            if (filesToUpload.length > 0) {
+                uploadButton.disabled = false;
+                filesToUpload.forEach(file => {
+                    const fileInfo = document.createElement('span');
+                    // Assign an ID based on file name for later styling
+                    fileInfo.id = `file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                    fileListDiv.appendChild(fileInfo);
+                });
+                uploadStatusDiv.textContent = `${filesToUpload.length} file(s) selected. Ready to upload.`;
+            } else {
+                uploadButton.disabled = true;
+            }
+        });
+
+        uploadButton.addEventListener('click', async () => {
+            if (filesToUpload.length === 0) {
+                alert('No files selected!');
+                return;
+            }
+
+            uploadButton.disabled = true; // Disable during upload
+            let successCount = 0;
+            let errorCount = 0;
+            uploadStatusDiv.textContent = 'Starting upload...';
+            uploadStatusDiv.className = ''; // Reset class
+
+            for (const file of filesToUpload) {
+                const fileStatusId = `file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const fileSpan = document.getElementById(fileStatusId);
+                if (fileSpan) fileSpan.textContent = `Uploading ${file.name}...`; // Update specific file status
+
+                try {
+                    const buffer = await readFileAsArrayBuffer(file);
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Fname': file.name,
+                            'X-Target-Dir': currentDirPath || '/'
+                        },
+                        body: buffer
+                    });
+
+                    if (response.ok) {
+                        console.log(`Successfully uploaded ${file.name}`);
+                        successCount++;
+                        if (fileSpan) {
+                            fileSpan.textContent = `Uploaded: ${file.name}`;
+                            fileSpan.classList.add('success'); // Mark specific file as success
+                        }
+                    } else {
+                        console.error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
+                        const errorBody = await response.text(); // Try to get error details from backend
+                        console.error(`Server response: ${errorBody}`);
+                        errorCount++;
+                        if (fileSpan) {
+                            fileSpan.textContent = `Failed: ${file.name} (${response.statusText || 'Error'})`;
+                            fileSpan.classList.add('error'); // Mark specific file as error
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error uploading ${file.name}:`, error);
+                    errorCount++;
+                    if (fileSpan) {
+                        fileSpan.textContent = `Failed: ${file.name} (Network/JS Error)`;
+                        fileSpan.classList.add('error');
+                    }
+                }
+            }
+
+            // --- MODIFIED: Final status message and reload ---
+            let finalMessage = `Upload complete. Success: ${successCount}, Failed: ${errorCount}.`;
+            uploadStatusDiv.textContent = finalMessage;
+
+            if (errorCount === 0 && successCount > 0) {
+                uploadStatusDiv.className = 'success'; // Add success class for styling
+            } else if (errorCount > 0) {
+                uploadStatusDiv.className = 'error'; // Add error class if any failed
+            }
+
+
+            // Reload the page after a short delay to show changes
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500); // Reload after 1.5 seconds
+
+            // Keep upload button disabled after completion until new files are selected
+            // fileInput.value = ''; // Clear the selection - this happens on reload anyway
+            // filesToUpload = [];
+        });
+
+        // Helper function remains the same
+        function readFileAsArrayBuffer(file) {
+            // ... (implementation from previous answer) ...
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    resolve(event.target.result); // Result is ArrayBuffer
+                };
+                reader.onerror = (error) => {
+                    reject(error);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+    </script>
+</body>
+
+</html>
