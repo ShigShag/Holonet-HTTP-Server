@@ -205,22 +205,21 @@
             let successCount = 0;
             let errorCount = 0;
             uploadStatusDiv.textContent = 'Starting upload...';
-            uploadStatusDiv.className = ''; // Reset class
+            uploadStatusDiv.className = '';
 
             for (const file of filesToUpload) {
                 const fileStatusId = `file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 const fileSpan = document.getElementById(fileStatusId);
-                if (fileSpan) fileSpan.textContent = `Uploading ${file.name}...`; // Update specific file status
+                if (fileSpan) fileSpan.textContent = `Uploading ${file.name}...`;
 
                 try {
-                    const buffer = await readFileAsArrayBuffer(file);
                     const response = await fetch('/upload', {
                         method: 'POST',
                         headers: {
                             'Fname': file.name,
                             'X-Target-Dir': currentDirPath || '/'
                         },
-                        body: buffer
+                        body: file // <-- send the file directly
                     });
 
                     if (response.ok) {
@@ -228,16 +227,16 @@
                         successCount++;
                         if (fileSpan) {
                             fileSpan.textContent = `Uploaded: ${file.name}`;
-                            fileSpan.classList.add('success'); // Mark specific file as success
+                            fileSpan.classList.add('success');
                         }
                     } else {
                         console.error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
-                        const errorBody = await response.text(); // Try to get error details from backend
+                        const errorBody = await response.text();
                         console.error(`Server response: ${errorBody}`);
                         errorCount++;
                         if (fileSpan) {
                             fileSpan.textContent = `Failed: ${file.name} (${response.statusText || 'Error'})`;
-                            fileSpan.classList.add('error'); // Mark specific file as error
+                            fileSpan.classList.add('error');
                         }
                     }
                 } catch (error) {
@@ -250,26 +249,24 @@
                 }
             }
 
-            // --- MODIFIED: Final status message and reload ---
             let finalMessage = `Upload complete. Success: ${successCount}, Failed: ${errorCount}.`;
             uploadStatusDiv.textContent = finalMessage;
 
             if (errorCount === 0 && successCount > 0) {
-                uploadStatusDiv.className = 'success'; // Add success class for styling
+                uploadStatusDiv.className = 'success';
+
+                // Reload the page after a short delay to show changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Reload after 1.5 seconds
             } else if (errorCount > 0) {
-                uploadStatusDiv.className = 'error'; // Add error class if any failed
+                uploadStatusDiv.className = 'error';
             }
-
-
-            // Reload the page after a short delay to show changes
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500); // Reload after 1.5 seconds
-
-            // Keep upload button disabled after completion until new files are selected
-            // fileInput.value = ''; // Clear the selection - this happens on reload anyway
-            // filesToUpload = [];
         });
+
+        // Keep upload button disabled after completion until new files are selected
+        // fileInput.value = ''; // Clear the selection - this happens on reload anyway
+        // filesToUpload = [];
 
         // Helper function remains the same
         function readFileAsArrayBuffer(file) {
