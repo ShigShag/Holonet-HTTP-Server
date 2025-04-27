@@ -11,22 +11,18 @@ It's designed to be lightweight, easy to run, and optionally supports TLS encryp
 
 **Main Page:**
 
-![Main Page Screenshot](screenshots/main_page.png)
+![Main Page Screenshot](img/main_page.png)
 
 **Uploading File:**
 
-![Uploading Screenshot](screenshots/uploading.png)
+![Uploading Screenshot](img/uploading.png)
 
 ---
 
-## Building
+## Installation
 
 ```bash
-# Build
-cargo build --release
-
-# Install
-cargo install --path .
+cargo install --git https://github.com/ShigShag/Holonet-HTTP-Server.git
 ```
 
 ## Running
