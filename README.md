@@ -7,18 +7,6 @@ It's designed to be lightweight, easy to run, and optionally supports TLS encryp
 
 ---
 
-## Screenshots
-
-**Main Page:**
-
-![Main Page Screenshot](img/main_page.png)
-
-**Uploading File:**
-
-![Uploading Screenshot](img/uploading.png)
-
----
-
 ## Installation
 
 ```bash
@@ -82,3 +70,15 @@ Options:
   -h, --help                   Print help
   -V, --version                Print version
 ```
+
+---
+
+## Screenshots
+
+**Main Page:**
+
+![Main Page Screenshot](img/main_page.png)
+
+**Uploading File:**
+
+![Uploading Screenshot](img/uploading.png)
