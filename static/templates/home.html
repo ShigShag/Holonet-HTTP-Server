@@ -10,22 +10,27 @@
         body {
             font-family: sans-serif;
             padding: 20px;
-            background-color: #f4f4f4;
-            /* Light background */
-            color: #333;
-            /* Default text color */
+            background-color: #212324;
+            /* Main dark background */
+            color: #ddd;
+            /* Lighter text color for dark mode */
         }
 
         h1 {
             color: #B2ADA7;
             /* Headline color */
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #444;
+            /* Darker border */
             padding-bottom: 5px;
         }
 
         ul {
             list-style: none;
             padding-left: 0;
+            background-color: #26292A;
+            /* Files list background */
+            padding: 15px;
+            border-radius: 8px;
         }
 
         li {
@@ -45,24 +50,16 @@
         }
 
         /* Directory specific styles */
-        .dir a {
-            color: #E76950;
-            /* Directory link color */
-            font-weight: bold;
-        }
-
-        /* --- NEW: Apply directory style to Parent Directory link --- */
+        .dir a,
         .parent-dir a {
             color: #E76950;
             /* Directory link color */
             font-weight: bold;
         }
 
-
         .dir::before {
             content: "📁 ";
             font-size: 1.1em;
-            /* Slightly larger folder icon */
         }
 
         .file::before {
@@ -74,72 +71,79 @@
         .upload-section {
             margin-top: 30px;
             padding: 15px;
-            border: 1px dashed #ccc;
-            background-color: #fff;
+            border: 1px dashed #444;
+            /* Darker dashed border */
+            background-color: #232526;
+            /* Upload section background */
+            border-radius: 8px;
         }
 
         .upload-section button {
             padding: 8px 15px;
             margin-right: 10px;
             cursor: pointer;
-            border: 1px solid #ccc;
-            background-color: #e7e7e7;
+            border: 1px solid #444;
+            /* Darker button border */
+            background-color: #2D3031;
+            /* Upload button background */
+            color: #ddd;
+            /* Light text */
             border-radius: 4px;
         }
 
         .upload-section button:hover {
-            background-color: #d4d4d4;
+            background-color: #3A3D3E;
+            /* Slightly lighter hover for buttons */
         }
 
         #file-list span {
             display: block;
             margin: 5px 0;
             font-size: 0.9em;
-            color: #555;
+            color: #aaa;
+            /* Slightly lighter text */
         }
 
         #file-list span.error {
             color: #dc3545;
-            /* Bootstrap danger red for errors */
+            /* Red for errors */
             font-weight: bold;
         }
 
         #file-list span.success {
             text-decoration: line-through;
-            /* Optional: strike through successful uploads */
             color: #6c757d;
-            /* Grey out */
+            /* Grey out successful uploads */
         }
 
         #upload-status {
             margin-top: 10px;
             font-style: italic;
-            color: #888;
+            color: #aaa;
             padding: 5px;
-            /* Add some padding */
         }
 
-        /* --- NEW: Success message style --- */
         #upload-status.success {
             color: #4CAF50;
-            /* Subtle green */
+            /* Green text */
             font-weight: bold;
             font-style: normal;
-            background-color: #e8f5e9;
-            /* Very light green background */
+            background-color: #2a3b2a;
+            /* Very dark green background */
             border-left: 3px solid #4CAF50;
         }
 
         #upload-status.error {
             color: #dc3545;
-            /* Bootstrap danger red */
+            /* Red text */
             font-weight: bold;
             font-style: normal;
-            background-color: #f8d7da;
-            /* Light red background */
+            background-color: #3b2a2a;
+            /* Very dark red background */
             border-left: 3px solid #dc3545;
         }
     </style>
+
 </head>
 
 <body>
@@ -258,7 +262,7 @@
                 // Reload the page after a short delay to show changes
                 setTimeout(() => {
                     window.location.reload();
-                }, 1500); // Reload after 1.5 seconds
+                }, 1000); // Reload after 1.5 seconds
             } else if (errorCount > 0) {
                 uploadStatusDiv.className = 'error';
             }
