@@ -1,6 +1,6 @@
 # HoloNet
 
-**HoloNet** is a simple HTTP file upload server.
+**HoloNet** is a simple HTTP file server.
 
 You can upload files using `curl`, optionally specifying a target filename and directory.  
 It's designed to be lightweight, easy to run, and optionally supports TLS encryption.
