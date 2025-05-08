@@ -170,6 +170,12 @@
     </div>
 
     <script>
+
+        function encodeFilenameUtf8Base64(str) {
+            const utf8Bytes = new TextEncoder().encode(str);
+            return btoa(String.fromCharCode(...utf8Bytes));
+        }
+
         const fileInput = document.getElementById('file-input');
         const uploadButton = document.getElementById('upload-button');
         const fileListDiv = document.getElementById('file-list');
@@ -212,16 +218,20 @@
             uploadStatusDiv.className = '';
 
             for (const file of filesToUpload) {
+                console.log(`Uploading ${file.name}...`);
                 const fileStatusId = `file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 const fileSpan = document.getElementById(fileStatusId);
                 if (fileSpan) fileSpan.textContent = `Uploading ${file.name}...`;
 
                 try {
+                    // Encode file name in base64
+                    const fileNameB64 = encodeFilenameUtf8Base64(file.name);
+
                     const response = await fetch('/upload', {
                         method: 'POST',
                         headers: {
-                            'Fname': file.name,
-                            'X-Target-Dir': currentDirPath || '/'
+                            'X-Target-Dir': currentDirPath || '/',
+                            "X-Target-File-B64": fileNameB64,
                         },
                         body: file // <-- send the file directly
                     });

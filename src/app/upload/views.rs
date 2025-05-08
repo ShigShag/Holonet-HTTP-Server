@@ -1,6 +1,8 @@
 use actix_web::{HttpRequest, HttpResponse, Result, web};
+use base64::{Engine as _, engine::general_purpose};
 use futures::StreamExt;
 use path_clean::PathClean;
+use sanitize_filename;
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 
@@ -12,8 +14,21 @@ pub async fn upload(
     req: HttpRequest,
 ) -> Result<HttpResponse> {
     // Determine filename
-    let filename = if let Some(fname_header) = req.headers().get("X-Target-File") {
-        match fname_header.to_str() {
+
+    // Check if base64 file name was send
+    let filename: String = if let Some(b64_file_name) = req.headers().get("X-Target-File-B64") {
+        match b64_file_name.to_str() {
+            Ok(base64_string) => match general_purpose::STANDARD.decode(base64_string) {
+                Ok(vec_u8_file_name) => match String::from_utf8(vec_u8_file_name.clone()) {
+                    Ok(file_name) => file_name,
+                    Err(err) => return Ok(HttpResponse::BadRequest().body(format!("{}", err))),
+                },
+                Err(err) => return Ok(HttpResponse::BadRequest().body(format!("{}", err))),
+            },
+            Err(err) => return Ok(HttpResponse::BadRequest().body(format!("{}", err))),
+        }
+    } else if let Some(ascii_file_name) = req.headers().get("X-Target-File") {
+        match ascii_file_name.to_str() {
             Ok(name) if !name.is_empty() => name.to_string(),
             _ => {
                 return Ok(HttpResponse::BadRequest().finish());
@@ -22,6 +37,9 @@ pub async fn upload(
     } else {
         format!("upload_{}.bin", chrono::Utc::now().timestamp_millis())
     };
+
+    // Sanitize the filename
+    let filename = sanitize_filename::sanitize(&filename);
 
     // Determine Target Directory from Header (Optional - Only if uploaded from frontend)
     let target_subdir_str = req
@@ -147,7 +165,7 @@ pub async fn upload(
     }
 
     log::info!(
-        "Successfully uploaded {} ({} bytes) to {}",
+        "Successfully uploaded {:?} ({} bytes) to {}",
         filename,
         total_bytes_written,
         full_file_path.display()
