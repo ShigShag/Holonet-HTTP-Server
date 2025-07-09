@@ -88,7 +88,7 @@ pub async fn upload(
     log::debug!("Attempting to upload to: {}", full_file_path.display());
 
     // --- 6. Open File for Writing ---
-    let mut file = match tokio::fs::File::create(&full_file_path).await {
+    let file = match tokio::fs::File::create(&full_file_path).await {
         Ok(f) => f,
         Err(e) => {
             log::error!(
@@ -101,49 +101,52 @@ pub async fn upload(
         }
     };
 
-    // --- 7. Read Payload and Write to File ---
     let mut total_bytes_written: u64 = 0;
-    while let Some(chunk_result) = payload.next().await {
-        match chunk_result {
+
+    // Set chunk size to 4 Megabytes
+    let chunk_size = 1024 * 1024 * 4;
+
+    // Create a buffer to read in the data
+    let mut read_buffer: Vec<u8> = Vec::new();
+
+    let mut writer = file;
+
+    // Stream payload
+    while let Some(chunk) = payload.next().await {
+        match chunk {
             Ok(data) => {
-                if let Err(e) = file.write_all(&data).await {
-                    log::error!(
-                        "Error writing upload chunk to {}: {}",
-                        full_file_path.display(),
-                        e
-                    );
-                    // Clean up partially written file
-                    drop(file); // Ensure file handle is closed before trying to remove
-                    let _ = tokio::fs::remove_file(&full_file_path).await; // Attempt cleanup
-                    return Ok(
-                        HttpResponse::InternalServerError().body("Error writing file to server")
-                    );
+                read_buffer.extend_from_slice(&data);
+                // If we exceed the chunk size it is time to write
+                if read_buffer.len() >= chunk_size {
+                    writer.write_all(&read_buffer).await.map_err(|e| {
+                        log::error!("Write error: {}", e);
+                        actix_web::error::ErrorInternalServerError("Write failure")
+                    })?;
+                    total_bytes_written += read_buffer.len() as u64;
+                    read_buffer.clear();
                 }
-                total_bytes_written += data.len() as u64;
             }
-            Err(e) => {
-                log::error!(
-                    "Error receiving upload payload chunk for {}: {}",
-                    full_file_path.display(),
-                    e
-                );
-                // Clean up partially written file
-                drop(file);
-                let _ = tokio::fs::remove_file(&full_file_path).await;
-                return Ok(HttpResponse::BadRequest().body("Error receiving upload data"));
+            Err(err) => {
+                log::error!("{}", err);
+                return Ok(HttpResponse::BadRequest().finish());
             }
         }
     }
 
-    // Flush OS buffer to disk before checking size / finishing
-    if let Err(e) = file.sync_all().await {
-        log::error!(
-            "Error flushing file {} to disk: {}",
-            full_file_path.display(),
-            e
-        );
-        // Cleanup? Maybe not fatal, but log it.
+    // Write any remaining data in the buffer
+    if !read_buffer.is_empty() {
+        writer.write_all(&read_buffer).await.map_err(|e| {
+            log::error!("Write error: {}", e);
+            actix_web::error::ErrorInternalServerError("Write failure")
+        })?;
+        total_bytes_written += read_buffer.len() as u64;
     }
+
+    // Flush buffer
+    writer.flush().await.map_err(|e| {
+        log::error!("Flush error: {}", e);
+        actix_web::error::ErrorInternalServerError("Flush failure")
+    })?;
 
     // --- 8. Check if File Size is Zero (Optional but good) ---
     // No need to get metadata again if we tracked bytes written
@@ -152,7 +155,6 @@ pub async fn upload(
             "Upload rejected: Received empty file for '{}'. Deleting.",
             full_file_path.display()
         );
-        drop(file); // Ensure file handle is closed
         if let Err(e) = tokio::fs::remove_file(&full_file_path).await {
             log::error!(
                 "Failed to delete empty uploaded file {}: {}",
